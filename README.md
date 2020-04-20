@@ -1,5 +1,5 @@
 # Rendy
-A powerful discord bot
+#### A powerful discord bot
 
 ## To Do
 ### UtilitiesModule
