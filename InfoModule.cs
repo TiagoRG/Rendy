@@ -30,5 +30,13 @@ namespace Rendy
             await Context.Message.DeleteAsync();
             await Context.Message.Author.SendMessageAsync("**List for all my commands:** *(My prefix is ``/``)*\n ```json\n\"help\": \"Used to get this help message.\"\n\"ping\": \"Used to see what delay I have to react to users.\"```");
         }
+
+        [Command("support", RunMode = RunMode.Async)]
+        [RequireContext(ContextType.Guild)]
+        public async Task Support()
+        {
+            await Context.Message.DeleteAsync();
+            await Context.Message.Author.SendMessageAsync("Join Rendy support server using https://discord.gg/3stDnz8");
+        }
     }
 }
