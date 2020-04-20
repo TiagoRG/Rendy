@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Rendy
 {
@@ -12,7 +13,6 @@ namespace Rendy
     {
         [Command("ping", RunMode = RunMode.Async)]
         [Summary("Ping the bot")]
-        [RequireContext(ContextType.Guild)]
         public async Task Ping()
         {
             var msg = await Context.Channel.SendMessageAsync("Calculating..");
@@ -25,13 +25,14 @@ namespace Rendy
 
         [Command("help", RunMode = RunMode.Async)]
         [Summary("Get the help command")]
-        [RequireContext(ContextType.Guild)]
         public async Task Help()
         {
             var embed = new EmbedBuilder()
                 .WithAuthor("Rendy")
                 .WithDescription("Here is the list of all Rendy commands. Prefix for all commands is ``/``")
                 .AddField("**Info**", "> help -> Shows this help message\n> ping -> Shows the time bot takes to reply\n> support -> Sends information about how do you get Rendy support.")
+                .AddField("**Utilities**", "> tell -> sends a message to a user | /tell <@user> <message>")
+                .AddField("**Trolling**", "> spam -> spams an user with mentions | /spam <@user> <amount of mentions>")
                 .WithThumbnailUrl(Const.logoUrl)
                 .WithFooter($"Rendy{Const.copyright} by TiagoRG#8003")
                 .WithColor(Color.Blue)
@@ -44,14 +45,13 @@ namespace Rendy
         }
 
         [Command("support")]
-        /*[RequireContext(ContextType.Guild)]*/
         public async Task Support()
         {
             var embed = new EmbedBuilder()
                 .WithAuthor("Rendy")
                 .WithDescription("Join our discord server or send support form to get support about the usage of Rendy.")
-                .AddField("**Support Server**", "Fastest Way\n[Click Here](https://discord.gg/3stDnz8)")
-                .AddField("**Support Form**", "[Click Here](https://forms.office.com/Pages/ResponsePage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAO__SHXmw5UQUZGVk1TWjA2Tk02NUgzSVRDVUtXV1NDVi4u)")
+                .AddField("**Support Server**", "Fastest Way\n[Click Here](https://discord.gg/3stDnz8)", true)
+                .AddField("**Support Form**", "[Click Here](https://forms.office.com/Pages/ResponsePage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAO__SHXmw5UQUZGVk1TWjA2Tk02NUgzSVRDVUtXV1NDVi4u)", true)
                 .WithThumbnailUrl(Const.logoUrl)
                 .WithFooter($"Rendy{Const.copyright} by TiagoRG#8003")
                 .WithColor(Color.Blue)
