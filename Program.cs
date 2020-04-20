@@ -47,7 +47,7 @@ namespace Rendy
             await _client.StartAsync();
 
             await _client.SetStatusAsync(Discord.UserStatus.DoNotDisturb);
-            await _client.SetGameAsync("/help | discord.gg/AzvfFpa", null, ActivityType.Listening);
+            await _client.SetGameAsync("/help | discord.gg/3stDnz8", null, ActivityType.Listening);
 
             // Block this task until the program is closed.
             await Task.Delay(-1);

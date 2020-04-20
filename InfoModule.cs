@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Commands;
+using Discord.API;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -27,16 +28,39 @@ namespace Rendy
         [RequireContext(ContextType.Guild)]
         public async Task Help()
         {
+            var embed = new EmbedBuilder()
+                .WithAuthor("Rendy")
+                .WithDescription("Here is the list of all Rendy commands. Prefix for all commands is ``/``")
+                .AddField("**Info**", "> help -> Shows this help message\n> ping -> Shows the time bot takes to reply\n> support -> Sends information about how do you get Rendy support.")
+                .WithThumbnailUrl(Const.logoUrl)
+                .WithFooter($"Rendy{Const.copyright} by TiagoRG#8003")
+                .WithColor(Color.Blue)
+                .Build();
+            await Context.Message.Author.SendMessageAsync(embed: embed);
+            var reply = await Context.Channel.SendMessageAsync("Check your dm's for help!", true);
             await Context.Message.DeleteAsync();
-            await Context.Message.Author.SendMessageAsync("**List for all my commands:** *(My prefix is ``/``)*\n ```json\n\"help\": \"Used to get this help message.\"\n\"ping\": \"Used to see what delay I have to react to users.\"```");
+            await Task.Delay(2500);
+            await reply.DeleteAsync();
         }
 
-        [Command("support", RunMode = RunMode.Async)]
-        [RequireContext(ContextType.Guild)]
+        [Command("support")]
+        /*[RequireContext(ContextType.Guild)]*/
         public async Task Support()
         {
+            var embed = new EmbedBuilder()
+                .WithAuthor("Rendy")
+                .WithDescription("Join our discord server or send support form to get support about the usage of Rendy.")
+                .AddField("**Support Server**", "Fastest Way\n[Click Here](https://discord.gg/3stDnz8)")
+                .AddField("**Support Form**", "[Click Here](https://forms.office.com/Pages/ResponsePage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAO__SHXmw5UQUZGVk1TWjA2Tk02NUgzSVRDVUtXV1NDVi4u)")
+                .WithThumbnailUrl(Const.logoUrl)
+                .WithFooter($"Rendy{Const.copyright} by TiagoRG#8003")
+                .WithColor(Color.Blue)
+                .Build();
+            await Context.Message.Author.SendMessageAsync(embed: embed);
+            var reply = await Context.Channel.SendMessageAsync("Check your dm's for support info!", true);
             await Context.Message.DeleteAsync();
-            await Context.Message.Author.SendMessageAsync("Join Rendy support server using https://discord.gg/3stDnz8");
+            await Task.Delay(2500);
+            await reply.DeleteAsync();
         }
     }
 }
