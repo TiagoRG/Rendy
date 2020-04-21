@@ -5,6 +5,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using System.Threading;
 
 namespace Rendy
 {
@@ -21,7 +22,7 @@ namespace Rendy
         {
             Console.Title = "Rendy Console";
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("Console started!\n\n");
+            Console.WriteLine("Console started!\n");
         }
         public async Task MainAsync()
         {
@@ -47,7 +48,7 @@ namespace Rendy
             await _client.StartAsync();
 
             await _client.SetStatusAsync(Discord.UserStatus.DoNotDisturb);
-            await _client.SetGameAsync("/help | discord.gg/3stDnz8", null, ActivityType.Listening);
+            await Activity();
 
             // Block this task until the program is closed.
             await Task.Delay(-1);
@@ -72,6 +73,25 @@ namespace Rendy
         {
             Console.WriteLine(msg.ToString());
             return Task.CompletedTask;
+        }
+        private async Task Activity()
+        {
+            int x = 0;
+            while (true)
+            {
+                if (x == 0)
+                {
+                    await _client.SetGameAsync("/help", null, ActivityType.Listening);
+                    x++;
+                    Thread.Sleep(10000);
+                }
+                if (x == 1)
+                {
+                    await _client.SetGameAsync("https://discord.gg/3stDnz8", null, ActivityType.Playing);
+                    x--;
+                    Thread.Sleep(10000);
+                }
+            }
         }
     }
 }
