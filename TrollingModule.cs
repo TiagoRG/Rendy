@@ -11,8 +11,9 @@ namespace Rendy
     public class TrollingModule : ModuleBase<SocketCommandContext>
     {
         [Command("spam")]
+        [RequireContext(ContextType.Guild)]
         [RequireBotPermission(ChannelPermission.ManageMessages)]
-        [RequireUserPermission(GuildPermission.BanMembers)]
+        [RequireUserPermission(GuildPermission.Administrator)]
         public async Task Spam(string user, string stringTimes)
         {
             string[] messages = { "Stop spamming", "That's what you get for spamming", "You suck", "Look who is spamming know", "Don't you agree that this is funny" };
