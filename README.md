@@ -7,10 +7,6 @@
 * Suggestion
 * Ticket
 
-### InfoModule
-* Server info
-* User info
-
 ### RolesModule
 * Autorole (on join)
 * Selfrole
