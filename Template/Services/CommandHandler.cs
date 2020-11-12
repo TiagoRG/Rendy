@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -9,6 +10,7 @@ using Discord.Addons.Hosting;
 using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
+using Rendy.Utilities;
 
 namespace Rendy.Services
 {
@@ -19,14 +21,16 @@ namespace Rendy.Services
         private readonly CommandService _service;
         private readonly IConfiguration _config;
         private readonly Servers _servers;
+        private readonly Images _images;
 
-        public CommandHandler(IServiceProvider provider, DiscordSocketClient client, CommandService service, IConfiguration config, Servers servers)
+        public CommandHandler(IServiceProvider provider, DiscordSocketClient client, CommandService service, IConfiguration config, Servers servers, Images images)
         {
             _provider = provider;
             _client = client;
             _service = service;
             _config = config;
             _servers = servers;
+            _images = images;
         }
 
         public override async Task InitializeAsync(CancellationToken cancellationToken)
@@ -34,10 +38,18 @@ namespace Rendy.Services
             _client.Ready += LoggedIn;
             _client.MessageReceived += OnMessageReceived;
             _client.JoinedGuild += OnJoinedGuild;
+            _client.UserJoined += OnUserJoined;
             /*_client.ReactionAdded += OnReactionAdded;*/
 
             _service.CommandExecuted += OnCommandExecuted;
             await _service.AddModulesAsync(Assembly.GetEntryAssembly(), _provider);
+        }
+
+        private async Task OnUserJoined(SocketGuildUser arg)
+        {
+            var path = await _images.CreateImageAsync(arg);
+            await arg.Guild.DefaultChannel.SendFileAsync(path, null);
+            File.Delete(path);
         }
 
         private async Task OnMessageReceived(SocketMessage arg)

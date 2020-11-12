@@ -17,15 +17,17 @@ namespace Rendy.Modules
         private readonly ILogger<AdministrationModule> _logger;
         private readonly Servers _servers;
         private readonly IConfiguration _config;
+        private readonly DiscordSocketClient _client;
 
-        public AdministrationModule(ILogger<AdministrationModule> logger, Servers servers, IConfiguration config)
+        public AdministrationModule(ILogger<AdministrationModule> logger, Servers servers, IConfiguration config, DiscordSocketClient client)
         {
             _logger = logger;
             _servers = servers;
             _config = config;
+            _client = client;
         }
 
-        [Command("tell")]
+        [Command("tell", RunMode = RunMode.Async)]
         [RequireOwner]
         public async Task Tell(IUser user, [Remainder] string msg)
         {
@@ -45,7 +47,7 @@ namespace Rendy.Modules
             await Context.Channel.SendMessageAsync(embed: embed);
         }
 
-        [Command("prune")]
+        [Command("prune", RunMode = RunMode.Async)]
         [RequireBotPermission(GuildPermission.KickMembers)]
         [RequireUserPermission(GuildPermission.Administrator)]
         [RequireContext(ContextType.Guild)]
@@ -58,7 +60,7 @@ namespace Rendy.Modules
             await reply.DeleteAsync();
         }
 
-        [Command("prefix")]
+        [Command("prefix", RunMode = RunMode.Async)]
         [RequireUserPermission(GuildPermission.ManageGuild)]
         [RequireContext(ContextType.Guild)]
         public async Task Prefix(string prefix = null)
@@ -114,6 +116,24 @@ namespace Rendy.Modules
                     .WithFooter(ConstModule.embedFooter)
                     .Build();
             await Context.Channel.SendMessageAsync(embed: embed2);
+        }
+
+        [Command("leaveserver")]
+        [RequireOwner]
+        public async Task LeaveServer()
+        {
+            await Context.Message.Author.SendMessageAsync("Just left the server successfully.");
+            await Context.Guild.LeaveAsync();
+        }
+
+        [Command("shutdown")]
+        [RequireOwner]
+        public async Task Shutdown()
+        {
+            await ReplyAsync("Bot is shutting down in 5 seconds.");
+            await Task.Delay(5000);
+            await ReplyAsync("Shutting down...");
+            await _client.StopAsync();
         }
     }
 }

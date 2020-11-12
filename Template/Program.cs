@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rendy.Services;
+using Rendy.Utilities;
 
 namespace Rendy
 {
@@ -57,7 +58,8 @@ namespace Rendy
                     services
                     .AddHostedService<CommandHandler>()
                     .AddDbContext<RendyContext>()
-                    .AddSingleton<Servers>();
+                    .AddSingleton<Servers>()
+                    .AddSingleton<Images>();
                 })
                 .UseConsoleLifetime();
             

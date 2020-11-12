@@ -21,7 +21,7 @@ namespace Rendy.Modules
             _logger = logger;
         }
 
-        [Command("spam")]
+        [Command("spam", RunMode = RunMode.Async)]
         [RequireContext(ContextType.Guild)]
         [RequireBotPermission(ChannelPermission.ManageMessages)]
         [RequireUserPermission(GuildPermission.Administrator)]
@@ -46,7 +46,7 @@ namespace Rendy.Modules
             }
         }
 
-        [Command("meme")]
+        [Command("meme", RunMode = RunMode.Async)]
         [Alias("reddit")]
         public async Task Meme(string subreddit = null)
         {

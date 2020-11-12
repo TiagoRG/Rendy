@@ -4,23 +4,29 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Database;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
+using Rendy.Utilities;
 
 namespace Rendy.Modules
 {
     public class UtilitiesModule : ModuleBase<SocketCommandContext>
     {
         private readonly ILogger<UtilitiesModule> _logger;
+        private readonly Servers _servers;
+        private readonly Images _images;
 
-        public UtilitiesModule(ILogger<UtilitiesModule> logger)
+        public UtilitiesModule(ILogger<UtilitiesModule> logger, Servers servers, Images images)
         {
             _logger = logger;
+            _servers = servers;
+            _images = images;
         }
 
-        [Command("ping")]
+        [Command("ping", RunMode = RunMode.Async)]
         public async Task PingAsync()
         {
             var msg = await Context.Channel.SendMessageAsync("Calculating..");
@@ -30,13 +36,14 @@ namespace Rendy.Modules
             await msg.ModifyAsync(x => x.Content = $"Hello, <@!{Context.Message.Author.Id}>. I have ``{time}ms`` of delay.");
         }
 
-        [Command("echo")]
+        [Command("echo", RunMode = RunMode.Async)]
+        [Alias("say")]
         public async Task EchoAsync([Remainder] string text)
         {
             await ReplyAsync(text);
         }
 
-        [Command("math")]
+        [Command("math", RunMode = RunMode.Async)]
         public async Task MathAsync([Remainder] string math)
         {
             var dt = new DataTable();
@@ -45,7 +52,7 @@ namespace Rendy.Modules
             await ReplyAsync($"Result: {result}");
         }
 
-        [Command("support")]
+        [Command("support", RunMode = RunMode.Async)]
         [Alias("help")]
         public async Task Support()
         {
@@ -61,9 +68,12 @@ namespace Rendy.Modules
                 .Build();
             await Context.Message.Author.SendMessageAsync(embed: embed);
             await Context.Message.DeleteAsync();
+            IMessage reply = await ReplyAsync("Check our dm's for support information!");
+            await Task.Delay(2500);
+            await reply.DeleteAsync();
         }
 
-        [Command("invite")]
+        [Command("invite", RunMode = RunMode.Async)]
         public async Task Invite()
         {
             await Context.Message.DeleteAsync();
@@ -78,7 +88,7 @@ namespace Rendy.Modules
             await Context.Channel.SendMessageAsync(embed: embed);
         }
 
-        [Command("userinfo")]
+        [Command("userinfo", RunMode = RunMode.Async)]
         [Alias("user")]
         [RequireContext(ContextType.Guild)]
         public async Task UserInfo(IUser user = null)
@@ -121,7 +131,7 @@ namespace Rendy.Modules
             }
         }
 
-        [Command("serverinfo")]
+        [Command("serverinfo", RunMode = RunMode.Async)]
         [Alias("server")]
         [RequireContext(ContextType.Guild)]
         public async Task ServerInfo()
@@ -145,6 +155,17 @@ namespace Rendy.Modules
                 .Build();
             await Context.Channel.SendMessageAsync(embed: embed);
             await Context.Message.DeleteAsync();
+        }
+
+        [Command("image", RunMode = RunMode.Async)]
+        [RequireOwner]
+        public async Task Image(SocketGuildUser user)
+        {
+            IMessage reply = await ReplyAsync("Generating your image, please wait...");
+            var path = await _images.CreateImageAsync(user);
+            await Context.Channel.SendFileAsync(path);
+            File.Delete(path);
+            await reply.DeleteAsync();
         }
     }
 }

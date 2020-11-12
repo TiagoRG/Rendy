@@ -19,7 +19,7 @@ namespace Rendy.Modules
             _logger = logger;
         }
 
-        [Command("purge")]
+        [Command("purge", RunMode = RunMode.Async)]
         [Alias("clean")]
         [RequireBotPermission(ChannelPermission.ManageMessages)]
         [RequireUserPermission(ChannelPermission.ManageMessages)]
@@ -32,7 +32,7 @@ namespace Rendy.Modules
             await Context.Message.Author.SendMessageAsync($"{messages.Count()} messages got deleted successfully. Enjoy your clean chat!");
         }
 
-        [Command("kick")]
+        [Command("kick", RunMode = RunMode.Async)]
         [RequireBotPermission(GuildPermission.KickMembers)]
         [RequireUserPermission(GuildPermission.KickMembers)]
         [RequireContext(ContextType.Guild)]
@@ -67,7 +67,7 @@ namespace Rendy.Modules
             await Context.Guild.GetUser(user.Id).KickAsync(reason);
         }
 
-        [Command("ban")]
+        [Command("ban", RunMode = RunMode.Async)]
         [RequireBotPermission(GuildPermission.BanMembers)]
         [RequireUserPermission(GuildPermission.BanMembers)]
         [RequireContext(ContextType.Guild)]
@@ -101,7 +101,7 @@ namespace Rendy.Modules
             await Context.Guild.GetUser(user.Id).BanAsync(7, reason: reason);
         }
 
-        [Command("softban")]
+        [Command("softban", RunMode = RunMode.Async)]
         [RequireBotPermission(GuildPermission.BanMembers)]
         [RequireUserPermission(GuildPermission.BanMembers)]
         [RequireContext(ContextType.Guild)]
