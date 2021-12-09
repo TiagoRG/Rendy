@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 
@@ -20,14 +21,14 @@ namespace Rendy.Modules
         {
             _logger = logger;
         }
-
+        
         [Command("spam", RunMode = RunMode.Async)]
         [RequireContext(ContextType.Guild)]
         [RequireBotPermission(ChannelPermission.ManageMessages)]
         [RequireUserPermission(GuildPermission.Administrator)]
         public async Task Spam(string user, string stringTimes)
         {
-            string[] messages = { "Stop spamming", "That's what you get for spamming", "You suck", "Look who is spamming know", "Don't you agree that this is funny" };
+            string[] messages = { "Stop spamming", "That's what you get for spamming", "You suck", "Look who is spamming now", "Don't you agree that this is funny" };
             int times = Convert.ToInt32(stringTimes);
             Random random = new Random();
             if (times > 25)
@@ -62,11 +63,11 @@ namespace Rendy.Modules
             var embed = new EmbedBuilder()
                 .WithAuthor(post["author"].ToString())
                 .WithTitle(post["title"].ToString())
-                .WithDescription("Meme from " + subreddit ?? "dankmemes")
+                .WithDescription("Meme from " + (subreddit ?? "dankmemes"))
                 .WithImageUrl(post["url"].ToString())
                 .WithColor(Color.Orange)
                 .WithUrl("https://reddit.com" + post["permalink"].ToString())
-                .WithFooter(ConstModule.embedFooter)
+                .WithFooter(ConstModule.footer)
                 .Build();
             await Context.Channel.SendMessageAsync(embed: embed);
         }

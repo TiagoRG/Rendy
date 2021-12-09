@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Database;
 using Discord;
 using Discord.Addons.Hosting;
+using Discord.Addons.Interactive;
 using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
@@ -12,6 +13,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rendy.Services;
 using Rendy.Utilities;
+using Victoria;
 
 namespace Rendy
 {
@@ -58,8 +60,19 @@ namespace Rendy
                     services
                     .AddHostedService<CommandHandler>()
                     .AddDbContext<RendyContext>()
+                    .AddSingleton<InteractiveService>()
                     .AddSingleton<Servers>()
-                    .AddSingleton<Images>();
+                    .AddSingleton<Images>()
+                    .AddSingleton<Mutes>()
+                    .AddSingleton<RestoreRoles>()
+                    .AddSingleton<Bans>()
+                    .AddSingleton<Ranks>()
+                    .AddSingleton<AutoRoles>()
+                    .AddSingleton<MuteWhitelists>()
+                    .AddSingleton<RanksHelper>()
+                    .AddSingleton<AutoRolesHelper>()
+                    .AddSingleton<MuteWhitelistsHelper>()
+                    .AddSingleton<ModSettings>();
                 })
                 .UseConsoleLifetime();
             

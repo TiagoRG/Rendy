@@ -6,7 +6,16 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <None Remove="Utilities\RanksHelper.cs~RF13acb57.TMP" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="..\.editorconfig" Link=".editorconfig" />
+    </ItemGroup>
+
+    <ItemGroup>
       <PackageReference Include="Discord.Addons.Hosting" Version="3.0.0" />
+      <PackageReference Include="Discord.Addons.Interactive" Version="2.0.0" />
       <PackageReference Include="Discord.Net" Version="2.2.0" />
       <PackageReference Include="Discord.Net.Commands" Version="2.2.0" />
       <PackageReference Include="Discord.Net.Core" Version="2.2.0" />
@@ -17,6 +26,7 @@
       <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
       <PackageReference Include="System.Drawing.Common" Version="5.0.0" />
       <PackageReference Include="System.Drawing.Primitives" Version="4.3.0" />
+      <PackageReference Include="Victoria" Version="5.1.11" />
     </ItemGroup>
 
     <ItemGroup>
