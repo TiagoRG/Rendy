@@ -14,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using Rendy.Common;
 using Rendy.Modules;
 using Rendy.Utilities;
+using Rendy.Services;
 using Victoria;
 
 namespace Rendy.Modules
@@ -22,13 +23,11 @@ namespace Rendy.Modules
     {
         private readonly DiscordSocketClient _client;
         private readonly IConfiguration _config;
-        private readonly Mutes _mutes;
 
-        public OwnerModule(DiscordSocketClient client, IConfiguration config, Mutes mutes)
+        public OwnerModule(DiscordSocketClient client, IConfiguration config)
         {
             _client = client;
             _config = config;
-            _mutes = mutes;
         }
 
         [Command("tell", RunMode = RunMode.Async)]
@@ -39,7 +38,7 @@ namespace Rendy.Modules
                 .WithAuthor("Rendy")
                 .WithColor(Color.DarkerGrey)
                 .WithDescription($"You got a message from Rendy Owner!")
-                .WithTitle("TiagoRG")
+                .WithTitle("Rended")
                 .WithFooter(ConstModule.footer)
                 .AddField("**Message Content**", msg)
                 .AddField("**Sent At**", Context.Message.Timestamp)
@@ -65,19 +64,40 @@ namespace Rendy.Modules
         public async Task Shutdown(int countdown = 0)
         {
             int numCountdown = Convert.ToInt32(countdown);
-            await ReplyAsync($"Bot is shutting down in {numCountdown} seconds.");
-            await Task.Delay(numCountdown * 1000);
+            await ReplyAsync($"Bot is shutting down in {numCountdown + 5} seconds.");
+            CommandHandler.DatabaseHandlerTask.Start();
+            await Task.Delay(numCountdown * 1000 + 5000);
             await ReplyAsync("Shutting down...");
             await _client.StopAsync();
         }
 
+        [Command("dbu", RunMode = RunMode.Async)]
+        [RequireOwner]
+        public async Task Dbu()
+        {
+            await ReplyAsync($"Last Database backup update: ``{CommandHandler.LastDbUpdate}``\nCommand execution time: ``{DateTime.Now}``");
+        }
+        [Command("dbpush", RunMode = RunMode.Sync)]
+        [RequireOwner]
+        public async Task DbPush()
+        {
+            CommandHandler.DatabaseHandlerTask = Task.CompletedTask;
+            CommandHandler.DatabasePush.Start();
+            await ReplyAsync("Database pushed successfully.");
+        }
+
         [Command("test")]
+        [RequireOwner]
+        [RequireMFA]
         [RequireGuild(new ulong[] { 452245903219359745 })]
         public async Task TestCommand()
         {
-            await _mutes.RemoveMuteAsync(Context.Guild.Id, Context.Message.Author.Id);
-            // await _mutes.AddMuteAsync(Context.Guild.Id, Context.Message.Author.Id, Context.Message.Author.Id, 917832356772085831, DateTime.Now, DateTime.Now + TimeSpan.FromSeconds(10), null, 452403573003649035, 493432570202161153);
-            await ReplyAsync("done");
+            string a = "";
+            foreach (ClientType b in Context.User.ActiveClients)
+            {
+                a += b.ToString() + "\n";
+            }
+            await ReplyAsync($"{a}\n{(Context.Message.Author as SocketSelfUser).Email}");
         }
     }
 }

@@ -11,23 +11,24 @@ using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Rendy.Common;
+using Rendy.Services;
 using Rendy.Utilities;
 
 namespace Rendy.Modules
 {
     public class UtilitiesModule : ModuleBase<SocketCommandContext>
     {
+        private readonly DiscordSocketClient _client;
         private readonly Servers _servers;
         private readonly IConfiguration _config;
         private readonly Images _images;
-        private readonly RanksHelper _ranksHelper;
 
-        public UtilitiesModule(Servers servers, IConfiguration config, Images images, RanksHelper ranksHelper)
+        public UtilitiesModule(Servers servers, IConfiguration config, Images images, DiscordSocketClient client)
         {
+            _client = client;
             _servers = servers;
             _config = config;
             _images = images;
-            _ranksHelper = ranksHelper;
         }
 
         [Command("ping", RunMode = RunMode.Async)]
@@ -69,7 +70,7 @@ namespace Rendy.Modules
         [Alias("help")]
         public async Task Support()
         {
-            string prefix = await _servers.GetGuildPrefix(Context.Guild.Id) ?? _config["prefix"];
+            string prefix = CommandHandler.ServerList.Where(x => x.Id == Context.Guild.Id).Select(x => x.Prefix).FirstOrDefault() ?? _config["prefix"];
             var embed = new EmbedBuilder()
                 .WithAuthor(author =>
                 {
@@ -111,42 +112,23 @@ namespace Rendy.Modules
         [RequireContext(ContextType.Guild)]
         public async Task UserInfo(IUser user = null)
         {
-            if(user == null)
-            {
-                var embed = new EmbedBuilder()
-                    .WithAuthor("Rendy")
-                    .WithColor(Color.Blue)
-                    .WithThumbnailUrl(Context.Message.Author.GetAvatarUrl())
-                    .WithTitle(Context.Message.Author.Username + "#" + Context.Message.Author.Discriminator)
-                    .WithFooter(ConstModule.footer)
-                    .AddField("Joined at", $"{Context.Guild.GetUser(Context.Message.Author.Id).JoinedAt.GetValueOrDefault().Day}/{Context.Guild.GetUser(Context.Message.Author.Id).JoinedAt.GetValueOrDefault().Month}/{Context.Guild.GetUser(Context.Message.Author.Id).JoinedAt.GetValueOrDefault().Year}", true)
-                    .AddField("Days in Guild", ((Context.Message.Timestamp - Context.Guild.GetUser(Context.Message.Author.Id).JoinedAt).GetValueOrDefault().TotalDays).ToString().Split(".")[0], true)
-                    .AddField("Created at", $"{Context.Guild.GetUser(Context.Message.Author.Id).CreatedAt.Day}/{Context.Guild.GetUser(Context.Message.Author.Id).CreatedAt.Month}/{Context.Guild.GetUser(Context.Message.Author.Id).CreatedAt.Year}", true)
-                    .AddField("Is Bot", Context.Message.Author.IsBot, true)
-                    .AddField("User ID", Context.Message.Author.Id, true)
-                    .AddField("Currently Playing", Context.Message.Author.Activity, true)
-                    .Build();
-                await Context.Channel.SendMessageAsync(embed: embed);
-                await Context.Message.DeleteAsync();
-            }
-            else
-            {
-                var embed = new EmbedBuilder()
-                    .WithAuthor("Rendy")
-                    .WithColor(Color.Blue)
-                    .WithThumbnailUrl(user.GetAvatarUrl())
-                    .WithTitle(user.Username + "#" + user.Discriminator)
-                    .WithFooter(ConstModule.footer)
-                    .AddField("Joined at", $"{Context.Guild.GetUser(user.Id).JoinedAt.GetValueOrDefault().Day}/{Context.Guild.GetUser(user.Id).JoinedAt.GetValueOrDefault().Month}/{Context.Guild.GetUser(user.Id).JoinedAt.GetValueOrDefault().Year}", true)
-                    .AddField("Days in Guild", ((Context.Message.Timestamp - Context.Guild.GetUser(user.Id).JoinedAt).GetValueOrDefault().TotalDays).ToString().Split(".")[0], true)
-                    .AddField("Created at", $"{Context.Guild.GetUser(user.Id).CreatedAt.Day}/{Context.Guild.GetUser(user.Id).CreatedAt.Month}/{Context.Guild.GetUser(user.Id).CreatedAt.Year}", true)
-                    .AddField("Is Bot", Context.Guild.GetUser(user.Id).IsBot, true)
-                    .AddField("User ID", Context.Guild.GetUser(user.Id).Id, true)
-                    .AddField("Currently Playing", Context.Guild.GetUser(user.Id).Activity, true)
-                    .Build();
-                await Context.Channel.SendMessageAsync(embed: embed);
-                await Context.Message.DeleteAsync();
-            }
+            user ??= Context.Message.Author;
+
+            var embed = new EmbedBuilder()
+                .WithAuthor("Rendy")
+                .WithColor(Color.Blue)
+                .WithThumbnailUrl(user.GetAvatarUrl())
+                .WithTitle(user.Username + "#" + user.Discriminator)
+                .WithFooter(ConstModule.footer)
+                .AddField("Joined at", $"{Context.Guild.GetUser(user.Id).JoinedAt.GetValueOrDefault().Day}/{Context.Guild.GetUser(user.Id).JoinedAt.GetValueOrDefault().Month}/{Context.Guild.GetUser(user.Id).JoinedAt.GetValueOrDefault().Year}", true)
+                .AddField("Days in Guild", ((Context.Message.Timestamp - Context.Guild.GetUser(user.Id).JoinedAt).GetValueOrDefault().TotalDays).ToString().Split(".")[0], true)
+                .AddField("Created at", $"{Context.Guild.GetUser(user.Id).CreatedAt.Day}/{Context.Guild.GetUser(user.Id).CreatedAt.Month}/{Context.Guild.GetUser(user.Id).CreatedAt.Year}", true)
+                .AddField("Is Bot", Context.Guild.GetUser(user.Id).IsBot, true)
+                .AddField("User ID", Context.Guild.GetUser(user.Id).Id, true)
+                .AddField("Currently Playing", Context.Guild.GetUser(user.Id).Activity, true)
+                .Build();
+            await Context.Channel.SendMessageAsync(embed: embed);
+            await Context.Message.DeleteAsync();
         }
 
         [Command("serverinfo", RunMode = RunMode.Async)]
@@ -218,7 +200,7 @@ namespace Rendy.Modules
                 .AddField("Categories", Context.Guild.CategoryChannels.Count, true)
                 .AddField("Text Channels", Context.Guild.TextChannels.Count, true)
                 .AddField("Voice Channels", Context.Guild.VoiceChannels.Count, true)
-                .AddField("Active Invites", inviteList ?? "*No invites found*")
+                .AddField("Active Invites", inviteList ?? "*No invites found.*")
                 .AddField("Role List", roleListOut ?? "*No roles found.*")
                 .Build();
             await Context.Channel.SendMessageAsync(embed: embed);
@@ -269,7 +251,7 @@ namespace Rendy.Modules
         public async Task Rank([Remainder]string identifier)
         {
             await Context.Channel.TriggerTypingAsync();
-            var ranks = await _ranksHelper.GetRanksAsync(Context.Guild);
+            var ranks = CommandHandler.RankList.Where(x => x.ServerId == Context.Guild.Id);
 
             IRole role;
 
@@ -296,7 +278,7 @@ namespace Rendy.Modules
                 role = roleByName;
             }
 
-            if(ranks.Any(x => x.Id != role.Id))
+            if(ranks.Any(x => x.RoleId != role.Id))
             {
                 await ReplyAsync("That rank does not exist!");
                 return;

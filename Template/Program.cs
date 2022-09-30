@@ -69,9 +69,6 @@ namespace Rendy
                     .AddSingleton<Ranks>()
                     .AddSingleton<AutoRoles>()
                     .AddSingleton<MuteWhitelists>()
-                    .AddSingleton<RanksHelper>()
-                    .AddSingleton<AutoRolesHelper>()
-                    .AddSingleton<MuteWhitelistsHelper>()
                     .AddSingleton<ModSettings>();
                 })
                 .UseConsoleLifetime();

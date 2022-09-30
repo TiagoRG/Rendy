@@ -20,7 +20,6 @@ public class RequireRoleAttribute : PreconditionAttribute
         // Check if this user is a Guild User, which is the only context where roles exist
         if (context.User is SocketGuildUser gUser)
         {
-
             var user = await context.Guild.GetUserAsync(context.User.Id) as SocketGuildUser;
 
             // If this command was executed by a user with the appropriate role, return a success
@@ -36,23 +35,41 @@ public class RequireRoleAttribute : PreconditionAttribute
     }
 }
 
-public class RequireGuild : PreconditionAttribute
+
+/// <summary>
+/// Requires the user who executes the command to have MFA enabled.
+/// </summary>
+public class RequireMFAAttribute : PreconditionAttribute
+{
+    public override async Task<PreconditionResult> CheckPermissionsAsync(ICommandContext context, CommandInfo command, IServiceProvider services)
+    {
+        if ((context.User as SocketSelfUser).IsMfaEnabled)
+            return await Task.FromResult(PreconditionResult.FromSuccess());
+        else
+            return await Task.FromResult(PreconditionResult.FromError("You must have MFA enabled to run this command."));
+    }
+}
+
+/// <summary>
+/// Retains the usage of the command to a list of guilds.
+/// </summary>
+public class RequireGuildAttribute : PreconditionAttribute
 {
     private readonly ulong[] _id;
 
-    public RequireGuild(ulong[] id) => _id = id;
+    public RequireGuildAttribute(ulong[] id) => _id = id;
 
-    public override Task<PreconditionResult> CheckPermissionsAsync(ICommandContext context, CommandInfo command, IServiceProvider services)
+    public override async Task<PreconditionResult> CheckPermissionsAsync(ICommandContext context, CommandInfo command, IServiceProvider services)
     {
         if (context.Guild is SocketGuild guild)
         {
             if (_id.Any(x => x == guild.Id))
-                return Task.FromResult(PreconditionResult.FromSuccess());
+                return await Task.FromResult(PreconditionResult.FromSuccess());
             // Since it wasn't, fail
             else
-                return Task.FromResult(PreconditionResult.FromError($"This command is not available in this guild."));
+                return await Task.FromResult(PreconditionResult.FromError($"This command is not available in this guild."));
         }
         else
-            return Task.FromResult(PreconditionResult.FromError("You must be in a guild to run this command."));
+            return await Task.FromResult(PreconditionResult.FromError("You must be in a guild to run this command."));
     }
 }

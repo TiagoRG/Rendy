@@ -30,6 +30,7 @@ namespace Database
         public ulong ModLogs { get; set; }
         public ulong AuditLogs { get; set; }
         public int MuteId { get; set; }
+        public int BanId { get; set; }
     }
 
     public class Rank
@@ -78,6 +79,7 @@ namespace Database
     public class Ban
     {
         public int Id { get; set; }
+        public int BanId { get; set; }
         public ulong ServerId { get; set; }
         public ulong UserId { get; set; }
         public ulong ModId { get; set; }

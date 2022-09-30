@@ -21,22 +21,14 @@ namespace Rendy.Modules
     public class ModerationModule : ModuleBase<SocketCommandContext>
     {
         private readonly ILogger<ModerationModule> _logger;
-        private readonly MuteWhitelists _muteWhitelists;
-        private readonly MuteWhitelistsHelper _muteWhitelistsHelper;
         private readonly Servers _servers;
         private readonly IConfiguration _config;
-        private readonly Mutes _mutes;
-        private readonly RestoreRoles _restoreRoles;
 
-        public ModerationModule(ILogger<ModerationModule> logger, MuteWhitelists muteWhitelists, MuteWhitelistsHelper muteWhitelistsHelper, Servers servers, IConfiguration config, Mutes mutes, RestoreRoles restoreRoles)
+        public ModerationModule(ILogger<ModerationModule> logger, Servers servers, IConfiguration config)
         {
             _logger = logger;
-            _muteWhitelists = muteWhitelists;
-            _muteWhitelistsHelper = muteWhitelistsHelper;
             _servers = servers;
             _config = config;
-            _mutes = mutes;
-            _restoreRoles = restoreRoles;
         }
 
         [Command("purge", RunMode = RunMode.Async)]
@@ -102,40 +94,6 @@ namespace Rendy.Modules
             await Context.Guild.GetUser(user.Id).KickAsync(reason);
         }
 
-        [Command("ban", RunMode = RunMode.Async)]
-        [RequireBotPermission(GuildPermission.BanMembers)]
-        [RequireUserPermission(GuildPermission.BanMembers)]
-        [RequireContext(ContextType.Guild)]
-        public async Task Ban(IUser user, [Remainder] string reason = null)
-        {
-            await Context.Message.DeleteAsync();
-            Embed embed = new EmbedBuilder()
-                .WithAuthor("Rendy")
-                .WithColor(Color.Red)
-                .WithTitle(user.Username + "#" + user.Discriminator)
-                .WithThumbnailUrl(user.GetAvatarUrl())
-                .WithDescription($"This user got banned from {Context.Guild.Name}")
-                .WithFooter(ConstModule.footer)
-                .AddField("Reason", reason)
-                .AddField("Moderator", Context.Message.Author, true)
-                .AddField("Banned At", $"{Context.Message.Timestamp.Day}/{Context.Message.Timestamp.Month}/{Context.Message.Timestamp.Year}", true)
-                .Build();
-            Embed privEmbed = new EmbedBuilder()
-                .WithAuthor("Rendy")
-                .WithColor(Color.Red)
-                .WithTitle(user.Username + "#" + user.Discriminator)
-                .WithThumbnailUrl(Context.Guild.IconUrl)
-                .WithDescription($"You got banned from {Context.Guild.Name}")
-                .WithFooter(ConstModule.footer)
-                .AddField("Reason", reason)
-                .AddField("Moderator", Context.Message.Author, true)
-                .AddField("Banned At", $"{Context.Message.Timestamp.Day}/{Context.Message.Timestamp.Month}/{Context.Message.Timestamp.Year}", true)
-                .Build();
-            await user.SendMessageAsync(embed: privEmbed);
-            await Context.Channel.SendMessageAsync(embed: embed);
-            await Context.Guild.GetUser(user.Id).BanAsync(7, reason: reason);
-        }
-
         [Command("softban", RunMode = RunMode.Async)]
         [RequireBotPermission(GuildPermission.BanMembers)]
         [RequireUserPermission(GuildPermission.BanMembers)]
@@ -177,11 +135,11 @@ namespace Rendy.Modules
         [Command("mute", RunMode = RunMode.Async)]
         [RequireUserPermission(GuildPermission.KickMembers)]
         [RequireBotPermission(GuildPermission.ManageRoles)]
+        [RequireContext(ContextType.Guild)]
         public async Task Mute(SocketGuildUser user, int minutes, [Remainder] string reason = null)
         {
-            while (CommandHandler.AutoModTaskAvailable == false) { }
-            CommandHandler.CommandTaskAvailable = false;
-
+            if (CommandHandler.ServerList.Any(x => x.Id == Context.Guild.Id) == false)
+                CommandHandler.ServerList.Add(new Server { Id = Context.Guild.Id });
             if (user.Hierarchy > Context.Guild.CurrentUser.Hierarchy)
             {
                 await Context.Channel.SendErrorAsync("Invalid user", "That user is higher than me in the hierarchy");
@@ -214,40 +172,38 @@ namespace Rendy.Modules
 
             await role.ModifyAsync(x => x.Position = Context.Guild.CurrentUser.Hierarchy);
 
-            var whitelistId = await _muteWhitelistsHelper.GetMuteWhitelistAsync(Context.Guild);
-
-            foreach (var channel in Context.Guild.TextChannels)
+            var whitelistId = CommandHandler.MuteWhitelistList.Where(x => x.ServerId == Context.Guild.Id);
+            foreach (var channelCheck in Context.Guild.TextChannels)
             {
-                if (whitelistId.Any(x => x.Id == channel.Id))
-                    await channel.AddPermissionOverwriteAsync(role, new OverwritePermissions(sendMessages: PermValue.Allow));
-                else if (!channel.GetPermissionOverwrite(role).HasValue || channel.GetPermissionOverwrite(role).Value.SendMessages == PermValue.Allow)
-                    await channel.AddPermissionOverwriteAsync(role, new OverwritePermissions(sendMessages: PermValue.Deny));
+                if (whitelistId.Any(x => x.ChannelId == channelCheck.Id))
+                    await channelCheck.AddPermissionOverwriteAsync(role, new OverwritePermissions(sendMessages: PermValue.Allow));
+                else if (!channelCheck.GetPermissionOverwrite(role).HasValue && channelCheck.GetPermissionOverwrite(role).Value.SendMessages == PermValue.Allow)
+                    await channelCheck.AddPermissionOverwriteAsync(role, new OverwritePermissions(sendMessages: PermValue.Deny));
             }
-            foreach (var channel in Context.Guild.VoiceChannels)
+            foreach (var channelCheck in Context.Guild.VoiceChannels)
             {
-                if (!channel.GetPermissionOverwrite(role).HasValue || channel.GetPermissionOverwrite(role).Value.Speak == PermValue.Allow)
-                    await channel.AddPermissionOverwriteAsync(role, new OverwritePermissions(speak: PermValue.Deny));
+                if (!channelCheck.GetPermissionOverwrite(role).HasValue && channelCheck.GetPermissionOverwrite(role).Value.Speak == PermValue.Allow)
+                    await channelCheck.AddPermissionOverwriteAsync(role, new OverwritePermissions(speak: PermValue.Deny));
             }
 
             DateTime dateEnd = DateTime.Now + TimeSpan.FromMinutes(minutes);
             DateTime dateBegin = DateTime.Now;
 
+            int counter = CommandHandler.ServerList.Where(x => x.Id == Context.Guild.Id).Select(x => x.MuteId).FirstOrDefault();
+            counter++;
+            CommandHandler.ServerList.Where(x => x.Id == Context.Guild.Id).ToList().ForEach(x => x.MuteId = counter);
+
             IEnumerable<IRole> restoreRoles = user.Roles;
-            List<ulong> restoreRolesId = new List<ulong>();
 
             foreach (IRole removeRole in restoreRoles)
             {
                 if (removeRole.Id == Context.Guild.Id || removeRole.IsManaged == true)
                     continue;
-                restoreRolesId.Add(removeRole.Id);
+                CommandHandler.RestoreRoleList.Add(new RestoreRole { MuteId = counter, RoleId = removeRole.Id });
                 await user.RemoveRoleAsync(removeRole);
             }
 
-            int counter = await _servers.GetMuteCounter(Context.Guild.Id);
-            await _mutes.AddMuteAsync(Context.Guild.Id, counter, user.Id, Context.Message.Author.Id, role.Id, dateBegin, dateEnd, reason ?? "*No reason was given!*");
-            int muteId = await _mutes.GetMuteIdAsync(Context.Guild.Id, user.Id);
-            await _restoreRoles.AddRestoreRolesAsync(muteId, restoreRolesId);
-            await _servers.AddMuteCounter(Context.Guild.Id);
+            CommandHandler.MuteList.Add(new Mute { ServerId = Context.Guild.Id, MuteId = counter, UserId = user.Id, ModId = Context.Guild.CurrentUser.Id, RoleId = role.Id, Begin = dateBegin, End = dateEnd, Reason = reason ?? "*No reason was given!*" });
             await user.AddRoleAsync(role);
 
             Embed embed = new EmbedBuilder()
@@ -269,10 +225,9 @@ namespace Rendy.Modules
 
             var reply = await ReplyAsync(embed: embed);
 
-            var channelId = await _servers.GetModLogsAsync(Context.Guild.Id);
+            var channelId = CommandHandler.ServerList.Where(x => x.Id == Context.Guild.Id).Select(x => x.ModLogs).FirstOrDefault();
             if (channelId != 0) await Context.Guild.GetTextChannel(channelId).SendMessageAsync(embed: embed);
 
-            CommandHandler.CommandTaskAvailable = true;
             await Task.Delay(10000);
             await reply.DeleteAsync();
             
@@ -281,6 +236,7 @@ namespace Rendy.Modules
         [Command("unmute", RunMode = RunMode.Async)]
         [RequireUserPermission(GuildPermission.KickMembers)]
         [RequireBotPermission(GuildPermission.ManageRoles)]
+        [RequireContext(ContextType.Guild)]
         public async Task Unmute(SocketGuildUser user)
         {
             var role = (Context.Guild as IGuild).Roles.FirstOrDefault(x => x.Name == "Muted");
@@ -302,17 +258,20 @@ namespace Rendy.Modules
                 return;
             }
 
-            MuteData mute = await _mutes.GetMuteAsync(Context.Guild.Id, user.Id);
+            Mute mute = CommandHandler.MuteList
+                .Where(x => x.ServerId == Context.Guild.Id)
+                .Where(x => x.UserId == user.Id)
+                .FirstOrDefault();
 
-            List<ulong> restoreRolesId = await _restoreRoles.GetRestoreRolesIdAsync(mute.Id);
+            List<RestoreRole> restoreRoles = CommandHandler.RestoreRoleList.Where(x => x.MuteId == mute.MuteId).ToList();
 
-            if (restoreRolesId != null)
+            if (restoreRoles != null)
             {
-                foreach (ulong restoreRoleId in restoreRolesId)
+                foreach (RestoreRole restoreRole in restoreRoles)
                 {
                     try
                     {
-                        await user.AddRoleAsync(Context.Guild.GetRole(restoreRoleId));
+                        await user.AddRoleAsync(Context.Guild.GetRole(restoreRole.RoleId));
                     }
                     catch
                     {
@@ -342,11 +301,99 @@ namespace Rendy.Modules
 
             var reply = await ReplyAsync(embed: embed);
 
-            var channelId = await _servers.GetModLogsAsync(Context.Guild.Id);
+            var channelId = CommandHandler.ServerList.Where(x => x.Id == Context.Guild.Id).Select(x => x.ModLogs).FirstOrDefault();
             if (channelId != 0) await Context.Guild.GetTextChannel(channelId).SendMessageAsync(embed: embed);
 
             await Task.Delay(10000);
             await reply.DeleteAsync();
+        }
+
+        [Command("ban", RunMode = RunMode.Async)]
+        [RequireBotPermission(GuildPermission.BanMembers)]
+        [RequireUserPermission(GuildPermission.BanMembers)]
+        [RequireContext(ContextType.Guild)]
+        public async Task Ban(SocketGuildUser user, int minutes = 0, [Remainder] string reason = null)
+        {
+            if (CommandHandler.ServerList.Any(x => x.Id == Context.Guild.Id) == false)
+                CommandHandler.ServerList.Add(new Server { Id = Context.Guild.Id });
+            if (user.Hierarchy > Context.Guild.CurrentUser.Hierarchy)
+            {
+                await Context.Channel.SendErrorAsync("Invalid user", "That user is higher than me in the hierarchy");
+                return;
+            }
+            if (user.Hierarchy > (Context.Message.Author as SocketGuildUser).Hierarchy)
+            {
+                await Context.Channel.SendErrorAsync("Invalid user", "That user is higher than you in the hierarchy");
+                return;
+            }
+
+            DateTime dateEnd = DateTime.Now + TimeSpan.FromMinutes(minutes);
+            DateTime dateBegin = DateTime.Now;
+
+            int counter = CommandHandler.ServerList.Where(x => x.Id == Context.Guild.Id).Select(x => x.MuteId).FirstOrDefault();
+            counter++;
+            CommandHandler.ServerList.Where(x => x.Id == Context.Guild.Id).ToList().ForEach(x => x.MuteId = counter);
+
+            if (dateBegin != dateEnd)
+            {
+                Embed embed = new EmbedBuilder()
+                    .WithColor(new Color(82, 196, 26))
+                    .WithAuthor(author =>
+                    {
+                        author
+                            .WithName($"Ban #{counter}")
+                            .WithIconUrl("https://icons.veryicon.com/png/o/miscellaneous/cloud-call-center/success-24.png");
+                    })
+                    .WithTitle("**User Banned**")
+                    .WithDescription($"Ban occurred at {dateBegin}. Banned until {dateEnd}.")
+                    .AddField("Banned Username", user.Mention, true)
+                    .AddField("Moderator", Context.Message.Author.Mention, true)
+                    .AddField("Duration", $"{minutes} minutes", true)
+                    .AddField("Reason", reason ?? "*No reason was given!*")
+                    .WithFooter(ConstModule.footer)
+                    .Build();
+
+                var reply = await ReplyAsync(embed: embed);
+                await user.SendMessageAsync(embed: embed);
+                var channelId = CommandHandler.ServerList.Where(x => x.Id == Context.Guild.Id).Select(x => x.ModLogs).FirstOrDefault();
+                if (channelId != 0) await Context.Guild.GetTextChannel(channelId).SendMessageAsync(embed: embed);
+
+                CommandHandler.BanList.Add(new Ban { BanId = counter, ServerId = Context.Guild.Id, UserId = user.Id, ModId = Context.Message.Author.Id, Reason = reason, Begin = dateBegin, End = dateEnd });
+                await Context.Guild.AddBanAsync(user, 7, reason);
+
+                await Task.Delay(10000);
+                await reply.DeleteAsync();
+            }
+            else
+            {
+                Embed embed = new EmbedBuilder()
+                    .WithColor(new Color(82, 196, 26))
+                    .WithAuthor(author =>
+                    {
+                        author
+                            .WithName($"Ban #{counter}")
+                            .WithIconUrl("https://icons.veryicon.com/png/o/miscellaneous/cloud-call-center/success-24.png");
+                    })
+                    .WithTitle("**User Banned**")
+                    .WithDescription($"Ban occurred at {dateBegin}. Banned permanently.")
+                    .AddField("Banned Username", user.Mention, true)
+                    .AddField("Moderator", Context.Message.Author.Mention, true)
+                    .AddField("Duration", "**--------**", true)
+                    .AddField("Reason", reason ?? "*No reason was given!*")
+                    .WithFooter(ConstModule.footer)
+                    .Build();
+
+                var reply = await ReplyAsync(embed: embed);
+                await user.SendMessageAsync(embed: embed);
+                var channelId = CommandHandler.ServerList.Where(x => x.Id == Context.Guild.Id).Select(x => x.ModLogs).FirstOrDefault();
+                if (channelId != 0) await Context.Guild.GetTextChannel(channelId).SendMessageAsync(embed: embed);
+
+                CommandHandler.BanList.Add(new Ban { BanId = counter, ServerId = Context.Guild.Id, UserId = user.Id, ModId = Context.Message.Author.Id, Reason = reason, Begin = dateBegin, End = dateEnd + TimeSpan.FromDays(3650) });
+                await Context.Guild.AddBanAsync(user, 7, reason);
+
+                await Task.Delay(10000);
+                await reply.DeleteAsync();
+            }
         }
     }
 }

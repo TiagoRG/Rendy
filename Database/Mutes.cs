@@ -17,78 +17,31 @@ namespace Database
             _servers = servers;
         }
 
-        public class MuteData
+        public async Task<List<Mute>> GetMutesAsync()
         {
-            public int Id;
-            public int MuteId;
-            public ulong ServerId;
-            public ulong UserId;
-            public ulong ModId;
-            public ulong RoleId;
-            public DateTime Begin;
-            public DateTime End;
-            public string Reason; 
-        }
-
-        public async Task<int> GetMuteIdAsync(ulong serverId, ulong userId)
-        {
-            int muteId = _context.Mutes
-                .Where(x => x.ServerId == serverId)
-                .Where(x => x.UserId == userId)
-                .Select(x => x.MuteId)
-                .FirstOrDefault();
-
-            return await Task.FromResult(muteId);
-        }
-
-        public async Task AddMuteAsync(ulong serverId, int muteId, ulong userId, ulong modId, ulong roleId, DateTime begin, DateTime end, string reason = null)
-        {
-            _context.Add(new Mute { ServerId = serverId, MuteId = muteId, UserId = userId, ModId = modId, RoleId = roleId, Begin = begin, End = end, Reason = reason});
-
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task RemoveMuteAsync(ulong serverId, ulong userId)
-        {
-            var mute = _context.Mutes
-                .Where(x => x.ServerId == serverId)
-                .Where(x => x.UserId == userId)
-                .FirstOrDefault();
-
-            _context.Mutes.Remove(mute);
-
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task<MuteData> GetMuteAsync(ulong serverId, ulong userId)
-        {
-            var mute = _context.Mutes
-                .Where(x => x.ServerId == serverId)
-                .Where(x => x.UserId == userId)
-                .FirstOrDefault();
-
-            if (mute == null)
+            List<Mute> muteData = new List<Mute>();
+            foreach (Mute mute in _context.Mutes)
             {
-                MuteData muteData1 = new MuteData { Id = -1 };
-                return muteData1;
+                muteData.Add(mute);
             }
-
-            MuteData muteData2 = new MuteData { Id = mute.Id, MuteId = mute.MuteId, ServerId = mute.ServerId, UserId = mute.UserId, ModId = mute.ModId, RoleId = mute.RoleId, Begin = mute.Begin, End = mute.End, Reason = mute.Reason};
-
-            return await Task.FromResult(muteData2);
+            return await Task.FromResult(muteData);
         }
 
-        public async Task<List<MuteData>> GetMutesAsync()
+        public async Task ClearMutesAsync()
         {
-            var mutes = _context.Mutes;
-            List<MuteData> Data = new List<MuteData>();
-
+            var mutes = _context.Mutes.ToList();
             foreach (Mute mute in mutes)
-            {
-                Data.Add(new MuteData { Id = mute.Id, MuteId = mute.MuteId, ServerId = mute.ServerId, UserId = mute.UserId, ModId = mute.ModId, RoleId = mute.RoleId, Begin = mute.Begin, End = mute.End, Reason = mute.Reason});
-            }
+                _context.Mutes.Remove(mute);
+            await _context.SaveChangesAsync();
+        }
 
-            return await Task.FromResult(Data);
+        public async Task UpdateMutesAsync(List<Mute> mutesList)
+        {
+            foreach (Mute mute in mutesList)
+            {
+                _context.Mutes.Add(mute);
+            }
+            await _context.SaveChangesAsync();
         }
     }
 }

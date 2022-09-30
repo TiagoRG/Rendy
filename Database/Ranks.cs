@@ -16,40 +16,30 @@ namespace Database
             _context = context;
         }
 
-        public async Task<List<Rank>> GetRanksAsync(ulong id)
+        public async Task<List<Rank>> GetRanksAsync()
         {
-            var ranks = await _context.Ranks
-                .Where(x => x.ServerId == id)
-                .ToListAsync();
-
-            return await Task.FromResult(ranks);
+            List<Rank> rankData = new List<Rank>();
+            foreach (Rank rank in _context.Ranks)
+            {
+                rankData.Add(rank);
+            }
+            return await Task.FromResult(rankData);
         }
 
-        public async Task AddRankAsync(ulong id, ulong roleId)
+        public async Task ClearRanksAsync()
         {
-            var server = await _context.Servers
-                .FindAsync(id);
-
-            if (server == null)
-                _context.Add(new Server { Id = id });
-
-            _context.Add(new Rank { RoleId = roleId, ServerId = id });
+            var ranks = _context.Ranks.ToList();
+            foreach (Rank rank in ranks)
+                _context.Ranks.Remove(rank);
             await _context.SaveChangesAsync();
         }
 
-        public async Task RemoveRankAsync(ulong id, ulong roleId)
+        public async Task UpdateRanksAsync(List<Rank> ranksList)
         {
-            var rank = await _context.Ranks
-                .Where(x => x.RoleId == roleId)
-                .FirstOrDefaultAsync();
-
-            _context.Remove(rank);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task ClearRanksAsync(List<Rank> ranks)
-        {
-            _context.RemoveRange(ranks);
+            foreach (Rank rank in ranksList)
+            {
+                _context.Ranks.Add(rank);
+            }
             await _context.SaveChangesAsync();
         }
     }

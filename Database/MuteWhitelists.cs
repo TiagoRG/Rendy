@@ -16,40 +16,30 @@ namespace Database
             _context = context;
         }
 
-        public async Task<List<MuteWhitelist>> GetMuteWhitelistAsync(ulong id)
+        public async Task<List<MuteWhitelist>> GetMuteWhitelistsAsync()
         {
-            var muteWhitelist = await _context.MuteWhilelists
-                .Where(x => x.ServerId == id)
-                .ToListAsync();
-
-            return await Task.FromResult(muteWhitelist);
+            List<MuteWhitelist> muteWhitelistData = new List<MuteWhitelist>();
+            foreach (MuteWhitelist muteWhitelist in _context.MuteWhilelists)
+            {
+                muteWhitelistData.Add(muteWhitelist);
+            }
+            return await Task.FromResult(muteWhitelistData);
         }
 
-        public async Task AddMuteWhitelistAsync(ulong id, ulong channelId)
+        public async Task ClearMuteWhitelistsAsync()
         {
-            var server = await _context.Servers
-                .FindAsync(id);
-
-            if (server == null)
-                _context.Add(new Server { Id = id });
-
-            _context.Add(new MuteWhitelist { ChannelId = channelId, ServerId = id });
+            var muteWhitelists = _context.MuteWhilelists.ToList();
+            foreach (MuteWhitelist muteWhitelist in muteWhitelists)
+                _context.MuteWhilelists.Remove(muteWhitelist);
             await _context.SaveChangesAsync();
         }
 
-        public async Task RemoveMuteWhitelistAsync(ulong id, ulong channelId)
+        public async Task UpdateMuteWhitelistsAsync(List<MuteWhitelist> muteWhitelists)
         {
-            var whitelist = await _context.MuteWhilelists
-                .Where(x => x.ChannelId == channelId)
-                .FirstOrDefaultAsync();
-
-            _context.Remove(whitelist);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task ClearMuteWhitelistAsync(List<MuteWhitelist> muteWhitelist)
-        {
-            _context.RemoveRange(muteWhitelist);
+            foreach (MuteWhitelist muteWhitelist in muteWhitelists)
+            {
+                _context.MuteWhilelists.Add(muteWhitelist);
+            }
             await _context.SaveChangesAsync();
         }
     }

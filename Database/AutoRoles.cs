@@ -16,40 +16,30 @@ namespace Database
             _context = context;
         }
 
-        public async Task<List<AutoRole>> GetAutoRolesAsync(ulong id)
+        public async Task<List<AutoRole>> GetAutoRolesAsync()
         {
-            var autoRoles = await _context.AutoRoles
-                .Where(x => x.ServerId == id)
-                .ToListAsync();
-
-            return await Task.FromResult(autoRoles);
+            List<AutoRole> autoRoleData = new List<AutoRole>();
+            foreach (AutoRole autoRole in _context.AutoRoles)
+            {
+                autoRoleData.Add(autoRole);
+            }
+            return await Task.FromResult(autoRoleData);
         }
 
-        public async Task AddAutoRoleAsync(ulong id, ulong roleId)
+        public async Task ClearAutoRolesAsync()
         {
-            var server = await _context.Servers
-                .FindAsync(id);
-
-            if (server == null)
-                _context.Add(new Server { Id = id });
-
-            _context.Add(new AutoRole { RoleId = roleId, ServerId = id });
+            var autoRoles = _context.AutoRoles.ToList();
+            foreach (AutoRole autoRole in autoRoles)
+                _context.AutoRoles.Remove(autoRole);
             await _context.SaveChangesAsync();
         }
 
-        public async Task RemoveAutoRoleAsync(ulong id, ulong roleId)
+        public async Task UpdateAutoRolesAsync(List<AutoRole> autoRolesList)
         {
-            var autoRole = await _context.AutoRoles
-                .Where(x => x.RoleId == roleId)
-                .FirstOrDefaultAsync();
-
-            _context.Remove(autoRole);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task ClearAutoRolesAsync(List<AutoRole> autoRoles)
-        {
-            _context.RemoveRange(autoRoles);
+            foreach (AutoRole autoRole in autoRolesList)
+            {
+                _context.AutoRoles.Add(autoRole);
+            }
             await _context.SaveChangesAsync();
         }
     }

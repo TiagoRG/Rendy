@@ -15,38 +15,29 @@ namespace Database
             _context = context;
         }
 
-        public async Task<List<ulong>> GetRestoreRolesIdAsync(int muteId)
+        public async Task<List<RestoreRole>> GetRestoreRolesAsync()
         {
-            var restoreRoles = _context.RestoreRoles
-                .Where(x => x.MuteId == muteId);
-
-            List<ulong> list = new List<ulong>();
-
-            foreach (RestoreRole roleId in restoreRoles)
+            List<RestoreRole> restoreRoleData = new List<RestoreRole>();
+            foreach (RestoreRole roles in _context.RestoreRoles)
             {
-                list.Add(roleId.RoleId);
+                restoreRoleData.Add(roles);
             }
-
-            return await Task.FromResult(list);
+            return await Task.FromResult(restoreRoleData);
         }
 
-        public async Task AddRestoreRolesAsync(int muteId, List<ulong> restoreRolesId)
+        public async Task ClearRestoreRolesAsync()
         {
-            foreach (ulong restoreRoleId in restoreRolesId)
-            {
-                _context.Add(new RestoreRole { MuteId = muteId, RoleId = restoreRoleId });
-            }
+            var restoreRoles = _context.RestoreRoles.ToList();
+            foreach (RestoreRole restoreRole in restoreRoles)
+                _context.RestoreRoles.Remove(restoreRole);
             await _context.SaveChangesAsync();
         }
 
-        public async Task RemoveRestoreRolesAsync(int muteId)
+        public async Task UpdateRestoreRolesAsync(List<RestoreRole> restoreRolesList)
         {
-            var toRemove = _context.RestoreRoles
-                .Where(x => x.MuteId == muteId);
-
-            foreach (RestoreRole remove in toRemove)
+            foreach (RestoreRole restoreRole in restoreRolesList)
             {
-                _context.Remove(remove);
+                _context.RestoreRoles.Add(restoreRole);
             }
             await _context.SaveChangesAsync();
         }
